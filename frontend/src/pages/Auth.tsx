@@ -4,11 +4,7 @@ import { Eye, EyeOff, Loader2, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import styles from './Auth.module.css';
 
-interface AuthProps {
-  onSuccess: () => void;
-}
-
-export function Auth({ onSuccess }: AuthProps) {
+export function Auth() {
   const { login, register } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -29,7 +25,6 @@ export function Auth({ onSuccess }: AuthProps) {
       } else {
         await register(email, password, name);
       }
-      onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -75,7 +70,7 @@ export function Auth({ onSuccess }: AuthProps) {
             </div>
             <div className={styles.feature}>
               <div className={styles.featureDot} />
-              <span>Powerful analytics</span>
+              <span>Powered by Supabase</span>
             </div>
           </div>
         </motion.div>

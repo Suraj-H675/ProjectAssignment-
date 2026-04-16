@@ -5,10 +5,11 @@ node_modules/
 dist/
 build/
 
-# Environment files
+# Environment files (contain secrets)
 .env
 .env.local
 .env.*.local
+frontend/.env
 
 # IDE
 .idea/
@@ -33,3 +34,6 @@ npm-debug.log*
 # Cache
 .cache/
 .parcel-cache/
+
+# Claude
+.claude/

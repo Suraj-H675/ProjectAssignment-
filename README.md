@@ -1,54 +1,48 @@
-# TaskFlow API
+# TaskFlow
 
-Scalable REST API with JWT Authentication & Role-Based Access Control, featuring a beautiful React frontend.
+Premium task management app with Supabase backend and beautiful React frontend.
 
 ## Features
 
-- **JWT Authentication** - Secure token-based auth
-- **Role-Based Access Control** - User and Admin roles
+- **Supabase Auth** - Secure authentication
+- **Role-Based Access** - User and Admin roles
 - **Task CRUD** - Full task management
-- **API Versioning** - v1 API routes
-- **Supabase** - Cloud PostgreSQL
+- **Real-time** - Powered by Supabase
 - **Premium UI** - Dark glassmorphism design with animations
 
 ## Tech Stack
 
-**Backend:** Node.js, Express, TypeScript, Supabase, JWT, bcrypt
-**Frontend:** React 18, Vite, Framer Motion, Lucide Icons
+**Frontend:** React 18, Vite, Supabase SDK, Framer Motion, Lucide Icons
+**Backend:** Supabase (Auth + Database + Auto-generated API)
 
 ## Quick Start
 
-### 1. Clone & Install
+### 1. Clone
 
 ```bash
 git clone https://github.com/Suraj-H675/ProjectAssignment-.git
 cd ProjectAssignment-
-npm install
-cd frontend && npm install && cd ..
-cd backend && npm install && cd ..
 ```
 
-### 2. Supabase Setup
-
-1. Create project at [supabase.com](https://supabase.com)
-2. Go to **Settings** → **API**
-3. Copy **Project URL** and **anon public** key
-
-### 3. Backend Setup
+### 2. Frontend Setup
 
 ```bash
-cd backend
-cp .env.example .env
+cd frontend
+npm install
+npm run dev
 ```
 
-Edit `.env`:
-```
-SUPABASE_URL=your-project-url
-SUPABASE_ANON_KEY=your-anon-key
-JWT_SECRET=your-secret-key-min-32-chars
-```
+### 3. Supabase Setup
 
-Run SQL in Supabase SQL Editor:
+1. Create project at [supabase.com](https://supabase.com)
+2. Go to **Settings** → **API** → Copy **Project URL** and **anon public** key
+3. Create `.env` file:
+```
+VITE_SUPABASE_URL=your-project-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+4. Run this SQL in Supabase SQL Editor:
+
 ```sql
 CREATE TABLE users (
   id UUID PRIMARY KEY,
@@ -70,68 +64,52 @@ CREATE TABLE tasks (
   "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
   "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own tasks" ON tasks FOR SELECT USING (true);
+CREATE POLICY "Users can insert own tasks" ON tasks FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users can update own tasks" ON tasks FOR UPDATE USING (true);
+CREATE POLICY "Users can delete own tasks" ON tasks FOR DELETE USING (true);
+CREATE POLICY "Users can view own profile" ON users FOR SELECT USING (true);
+CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (true);
 ```
 
-Start backend:
-```bash
-cd backend
-npm run dev
-```
+Frontend: `http://localhost:5173`
 
-### 4. Frontend Setup
+## Deployment
+
+### Frontend (Vercel)
 
 ```bash
 cd frontend
-npm run dev
+vercel
 ```
 
-Frontend runs on `http://localhost:5173`
-Backend runs on `http://localhost:3000`
+Set environment variables in Vercel:
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
 
-## API Endpoints
+## Architecture
 
-### Authentication
 ```
-POST /api/v1/auth/register  - Register
-POST /api/v1/auth/login     - Login
-GET  /api/v1/auth/profile   - Get profile
-PUT  /api/v1/auth/profile   - Update profile
-```
-
-### Tasks (requires JWT)
-```
-POST   /api/v1/tasks      - Create task
-GET    /api/v1/tasks      - Get all tasks
-GET    /api/v1/tasks/:id  - Get task
-PUT    /api/v1/tasks/:id  - Update task
-DELETE /api/v1/tasks/:id  - Delete task
+Frontend → Supabase (Auth + Database + API)
+           No backend server needed!
 ```
 
 ## Project Structure
 
 ```
-├── backend/
-│   ├── src/
-│   │   ├── config/       # Supabase, JWT
-│   │   ├── controllers/  # Auth, Task
-│   │   ├── middleware/   # Auth, validation
-│   │   ├── models/      # User, Task
-│   │   └── routes/      # API routes
-│   └── package.json
 ├── frontend/
 │   ├── src/
 │   │   ├── context/      # Auth context
+│   │   ├── lib/         # Supabase client
 │   │   ├── pages/       # Auth, Dashboard
 │   │   └── App.tsx
 │   └── package.json
 └── README.md
 ```
-
-## Deployment
-
-**Frontend:** Deploy frontend folder to Vercel
-
-**Backend:** Deploy to Railway/Render with env variables
 
 ## License
 

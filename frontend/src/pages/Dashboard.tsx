@@ -5,6 +5,7 @@ import {
   Edit2, X, Loader2, LogOut, AlertCircle, Flame, Calendar, ArrowUpRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import styles from './Dashboard.module.css';
 
 interface Task {
@@ -13,7 +14,7 @@ interface Task {
   description: string | null;
   status: 'pending' | 'in_progress' | 'completed';
   priority: 'low' | 'medium' | 'high';
-  createdAt: string;
+  created_at: string;
 }
 
 const statusConfig = {
@@ -28,10 +29,8 @@ const priorityConfig = {
   high: { color: '#ef4444', label: 'High' },
 };
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
-
 export function Dashboard() {
-  const { user, logout, token } = useAuth();
+  const { user, logout } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -52,13 +51,13 @@ export function Dashboard() {
 
   const fetchTasks = async () => {
     try {
-      const res = await fetch(`${API_URL}/tasks`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setTasks(data.data);
-      }
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTasks(data || []);
     } catch {
       setError('Failed to fetch tasks');
     } finally {
@@ -71,19 +70,20 @@ export function Dashboard() {
     setError('');
 
     try {
-      const res = await fetch(`${API_URL}/tasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      });
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert({
+          title: formData.title,
+          description: formData.description || null,
+          status: formData.status,
+          priority: formData.priority,
+        })
+        .select()
+        .single();
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      if (error) throw error;
 
-      setTasks([data.data, ...tasks]);
+      setTasks([data, ...tasks]);
       closeModal();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create task');
@@ -96,19 +96,21 @@ export function Dashboard() {
     setError('');
 
     try {
-      const res = await fetch(`${API_URL}/tasks/${editingTask.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      });
+      const { data, error } = await supabase
+        .from('tasks')
+        .update({
+          title: formData.title,
+          description: formData.description || null,
+          status: formData.status,
+          priority: formData.priority,
+        })
+        .eq('id', editingTask.id)
+        .select()
+        .single();
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      if (error) throw error;
 
-      setTasks(tasks.map((t) => (t.id === editingTask.id ? data.data : t)));
+      setTasks(tasks.map((t) => (t.id === editingTask.id ? data : t)));
       closeModal();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update task');
@@ -117,16 +119,9 @@ export function Dashboard() {
 
   const handleDeleteTask = async (id: string) => {
     try {
-      const res = await fetch(`${API_URL}/tasks/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const { error } = await supabase.from('tasks').delete().eq('id', id);
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message);
-      }
-
+      if (error) throw error;
       setTasks(tasks.filter((t) => t.id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete task');
@@ -190,7 +185,7 @@ export function Dashboard() {
           </div>
         </div>
         <div className={styles.headerRight}>
-          <span className={styles.roleTag}>{user?.role}</span>
+          <span className={styles.roleTag}>{user?.role || 'user'}</span>
           <button className={styles.logoutButton} onClick={logout}>
             <LogOut size={18} />
           </button>
@@ -346,7 +341,7 @@ export function Dashboard() {
 
                     <div className={styles.taskFooter}>
                       <span className={styles.taskDate}>
-                        {new Date(task.createdAt).toLocaleDateString('en-US', {
+                        {new Date(task.created_at).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
                         })}

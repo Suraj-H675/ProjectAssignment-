@@ -36,7 +36,7 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Auth onSuccess={() => {}} />} />
+      <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Auth />} />
       <Route
         path="/dashboard"
         element={
