@@ -50,10 +50,12 @@ export function Dashboard() {
   }, []);
 
   const fetchTasks = async () => {
+    if (!user) return;
     try {
       const { data, error: fetchError } = await supabase
         .from('tasks')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
@@ -78,6 +80,7 @@ export function Dashboard() {
           description: formData.description || null,
           status: formData.status,
           priority: formData.priority,
+          user_id: user.id,
         })
         .select()
         .single();
@@ -110,6 +113,7 @@ export function Dashboard() {
           priority: formData.priority,
         })
         .eq('id', editingTask.id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -125,7 +129,7 @@ export function Dashboard() {
 
   const handleDeleteTask = async (id: string) => {
     try {
-      const { error: deleteError } = await supabase.from('tasks').delete().eq('id', id);
+      const { error: deleteError } = await supabase.from('tasks').delete().eq('id', id).eq('user_id', user.id);
 
       if (deleteError) throw deleteError;
       setTasks(tasks.filter((t) => t.id !== id));
