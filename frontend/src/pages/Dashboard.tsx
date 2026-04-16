@@ -70,6 +70,7 @@ export function Dashboard() {
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     setError('');
 
     try {
@@ -100,7 +101,7 @@ export function Dashboard() {
 
   const handleUpdateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingTask) return;
+    if (!editingTask || !user) return;
     setError('');
 
     try {
@@ -128,6 +129,7 @@ export function Dashboard() {
   };
 
   const handleDeleteTask = async (id: string) => {
+    if (!user) return;
     try {
       const { error: deleteError } = await supabase.from('tasks').delete().eq('id', id).eq('user_id', user.id);
 
