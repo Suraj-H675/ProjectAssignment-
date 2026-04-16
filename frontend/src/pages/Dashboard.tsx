@@ -12,18 +12,18 @@ interface Task {
   id: string;
   title: string;
   description: string | null;
-  status: 'pending' | 'in_progress' | 'completed';
-  priority: 'low' | 'medium' | 'high';
+  status: string;
+  priority: string;
   created_at: string;
 }
 
-const statusConfig = {
+const statusConfig: Record<string, { icon: typeof Circle; label: string; color: string }> = {
   pending: { icon: Circle, label: 'Todo', color: '#8a8a8e' },
   in_progress: { icon: Flame, label: 'In Progress', color: '#f59e0b' },
   completed: { icon: CheckCircle2, label: 'Done', color: '#22c55e' },
 };
 
-const priorityConfig = {
+const priorityConfig: Record<string, { color: string; label: string }> = {
   low: { color: '#22c55e', label: 'Low' },
   medium: { color: '#f59e0b', label: 'Medium' },
   high: { color: '#ef4444', label: 'High' },
@@ -41,8 +41,8 @@ export function Dashboard() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    status: 'pending' as Task['status'],
-    priority: 'medium' as Task['priority'],
+    status: 'pending',
+    priority: 'medium',
   });
 
   useEffect(() => {
@@ -51,14 +51,15 @@ export function Dashboard() {
 
   const fetchTasks = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('tasks')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
       setTasks(data || []);
-    } catch {
+    } catch (err) {
+      console.error('Fetch error:', err);
       setError('Failed to fetch tasks');
     } finally {
       setIsLoading(false);
@@ -70,7 +71,7 @@ export function Dashboard() {
     setError('');
 
     try {
-      const { data, error } = await supabase
+      const { data, error: insertError } = await supabase
         .from('tasks')
         .insert({
           title: formData.title,
@@ -81,11 +82,15 @@ export function Dashboard() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        throw insertError;
+      }
 
       setTasks([data, ...tasks]);
       closeModal();
     } catch (err) {
+      console.error('Create error:', err);
       setError(err instanceof Error ? err.message : 'Failed to create task');
     }
   };
@@ -96,7 +101,7 @@ export function Dashboard() {
     setError('');
 
     try {
-      const { data, error } = await supabase
+      const { data, error: updateError } = await supabase
         .from('tasks')
         .update({
           title: formData.title,
@@ -108,22 +113,24 @@ export function Dashboard() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
       setTasks(tasks.map((t) => (t.id === editingTask.id ? data : t)));
       closeModal();
     } catch (err) {
+      console.error('Update error:', err);
       setError(err instanceof Error ? err.message : 'Failed to update task');
     }
   };
 
   const handleDeleteTask = async (id: string) => {
     try {
-      const { error } = await supabase.from('tasks').delete().eq('id', id);
+      const { error: deleteError } = await supabase.from('tasks').delete().eq('id', id);
 
-      if (error) throw error;
+      if (deleteError) throw deleteError;
       setTasks(tasks.filter((t) => t.id !== id));
     } catch (err) {
+      console.error('Delete error:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete task');
     }
   };
@@ -164,7 +171,6 @@ export function Dashboard() {
 
   return (
     <div className={styles.container}>
-      {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
           <div className={styles.logoMark}>
@@ -192,64 +198,34 @@ export function Dashboard() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className={styles.main}>
-        {/* Stats */}
         <div className={styles.statsGrid}>
-          <motion.div
-            className={styles.statCard}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <div className={styles.statIcon}>
-              <Calendar size={20} />
-            </div>
+          <motion.div className={styles.statCard} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <div className={styles.statIcon}><Calendar size={20} /></div>
             <div className={styles.statContent}>
               <span className={styles.statValue}>{stats.total}</span>
               <span className={styles.statLabel}>Total Tasks</span>
             </div>
           </motion.div>
 
-          <motion.div
-            className={styles.statCard}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-          >
-            <div className={styles.statIcon} style={{ color: '#22c55e' }}>
-              <CheckCircle2 size={20} />
-            </div>
+          <motion.div className={styles.statCard} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+            <div className={styles.statIcon} style={{ color: '#22c55e' }}><CheckCircle2 size={20} /></div>
             <div className={styles.statContent}>
               <span className={styles.statValue}>{stats.completed}</span>
               <span className={styles.statLabel}>Completed</span>
             </div>
           </motion.div>
 
-          <motion.div
-            className={styles.statCard}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className={styles.statIcon} style={{ color: '#f59e0b' }}>
-              <Flame size={20} />
-            </div>
+          <motion.div className={styles.statCard} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+            <div className={styles.statIcon} style={{ color: '#f59e0b' }}><Flame size={20} /></div>
             <div className={styles.statContent}>
               <span className={styles.statValue}>{stats.inProgress}</span>
               <span className={styles.statLabel}>In Progress</span>
             </div>
           </motion.div>
 
-          <motion.div
-            className={styles.statCard}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-          >
-            <div className={styles.statIcon} style={{ color: '#ef4444' }}>
-              <AlertCircle size={20} />
-            </div>
+          <motion.div className={styles.statCard} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+            <div className={styles.statIcon} style={{ color: '#ef4444' }}><AlertCircle size={20} /></div>
             <div className={styles.statContent}>
               <span className={styles.statValue}>{stats.highPriority}</span>
               <span className={styles.statLabel}>High Priority</span>
@@ -257,51 +233,27 @@ export function Dashboard() {
           </motion.div>
         </div>
 
-        {/* Search and Actions */}
         <div className={styles.toolbar}>
           <div className={styles.searchBox}>
             <Search size={18} />
-            <input
-              type="text"
-              placeholder="Search tasks..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+            <input type="text" placeholder="Search tasks..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
           </div>
-          <motion.button
-            className={styles.addButton}
-            onClick={() => openModal()}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Plus size={20} />
-            New Task
+          <motion.button className={styles.addButton} onClick={() => openModal()} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Plus size={20} />New Task
           </motion.button>
         </div>
 
-        {/* Error Banner */}
         {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={styles.errorBanner}
-          >
-            <AlertCircle size={18} />
-            {error}
-            <button onClick={() => setError('')}><X size={16} /></button>
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={styles.errorBanner}>
+            <AlertCircle size={18} />{error}<button onClick={() => setError('')}><X size={16} /></button>
           </motion.div>
         )}
 
-        {/* Tasks List */}
         {isLoading ? (
-          <div className={styles.loadingState}>
-            <Loader2 className={styles.spinner} size={32} />
-          </div>
+          <div className={styles.loadingState}><Loader2 className={styles.spinner} size={32} /></div>
         ) : filteredTasks.length === 0 ? (
           <div className={styles.emptyState}>
-            <div className={styles.emptyIcon}>
-              <CheckCircle2 size={48} strokeWidth={1} />
-            </div>
+            <div className={styles.emptyIcon}><CheckCircle2 size={48} strokeWidth={1} /></div>
             <h3>No tasks yet</h3>
             <p>Create your first task to get started</p>
           </div>
@@ -309,8 +261,8 @@ export function Dashboard() {
           <div className={styles.tasksList}>
             <AnimatePresence>
               {filteredTasks.map((task, index) => {
-                const status = statusConfig[task.status];
-                const priority = priorityConfig[task.priority];
+                const status = statusConfig[task.status] || statusConfig.pending;
+                const priority = priorityConfig[task.priority] || priorityConfig.medium;
                 const StatusIcon = status.icon;
 
                 return (
@@ -325,42 +277,21 @@ export function Dashboard() {
                   >
                     <div className={styles.taskHeader}>
                       <div className={styles.taskStatus} style={{ color: status.color }}>
-                        <StatusIcon size={18} />
-                        <span>{status.label}</span>
+                        <StatusIcon size={18} /><span>{status.label}</span>
                       </div>
-                      <span className={styles.taskPriority} style={{ color: priority.color }}>
-                        {priority.label}
-                      </span>
+                      <span className={styles.taskPriority} style={{ color: priority.color }}>{priority.label}</span>
                     </div>
-
                     <h3 className={styles.taskTitle}>{task.title}</h3>
-
-                    {task.description && (
-                      <p className={styles.taskDescription}>{task.description}</p>
-                    )}
-
+                    {task.description && <p className={styles.taskDescription}>{task.description}</p>}
                     <div className={styles.taskFooter}>
                       <span className={styles.taskDate}>
-                        {new Date(task.created_at).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                        })}
+                        {new Date(task.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </span>
                       <div className={styles.taskActions}>
-                        <motion.button
-                          className={styles.taskAction}
-                          onClick={() => openModal(task)}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                        >
+                        <motion.button className={styles.taskAction} onClick={() => openModal(task)} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                           <Edit2 size={16} />
                         </motion.button>
-                        <motion.button
-                          className={`${styles.taskAction} ${styles.deleteAction}`}
-                          onClick={() => handleDeleteTask(task.id)}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                        >
+                        <motion.button className={`${styles.taskAction} ${styles.deleteAction}`} onClick={() => handleDeleteTask(task.id)} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                           <Trash2 size={16} />
                         </motion.button>
                       </div>
@@ -373,90 +304,44 @@ export function Dashboard() {
         )}
       </main>
 
-      {/* Modal */}
       <AnimatePresence>
         {showModal && (
-          <motion.div
-            className={styles.modalOverlay}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={closeModal}
-          >
-            <motion.div
-              className={styles.modal}
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              onClick={(e) => e.stopPropagation()}
-            >
+          <motion.div className={styles.modalOverlay} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal}>
+            <motion.div className={styles.modal} initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: 'spring', damping: 25, stiffness: 300 }} onClick={(e) => e.stopPropagation()}>
               <div className={styles.modalHeader}>
                 <h2>{editingTask ? 'Edit Task' : 'New Task'}</h2>
-                <button className={styles.modalClose} onClick={closeModal}>
-                  <X size={20} />
-                </button>
+                <button className={styles.modalClose} onClick={closeModal}><X size={20} /></button>
               </div>
-
               <form onSubmit={editingTask ? handleUpdateTask : handleCreateTask}>
                 {error && <div className={styles.formError}>{error}</div>}
-
                 <div className={styles.formGroup}>
                   <label>Title</label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Task title"
-                    required
-                    autoFocus
-                  />
+                  <input type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Task title" required autoFocus />
                 </div>
-
                 <div className={styles.formGroup}>
                   <label>Description</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Optional description..."
-                    rows={3}
-                  />
+                  <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Optional description..." rows={3} />
                 </div>
-
                 <div className={styles.formRow}>
                   <div className={styles.formGroup}>
                     <label>Status</label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value as Task['status'] })}
-                    >
+                    <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
                       <option value="pending">Todo</option>
                       <option value="in_progress">In Progress</option>
                       <option value="completed">Completed</option>
                     </select>
                   </div>
-
                   <div className={styles.formGroup}>
                     <label>Priority</label>
-                    <select
-                      value={formData.priority}
-                      onChange={(e) => setFormData({ ...formData, priority: e.target.value as Task['priority'] })}
-                    >
+                    <select value={formData.priority} onChange={(e) => setFormData({ ...formData, priority: e.target.value })}>
                       <option value="low">Low</option>
                       <option value="medium">Medium</option>
                       <option value="high">High</option>
                     </select>
                   </div>
                 </div>
-
-                <motion.button
-                  type="submit"
-                  className={styles.submitButton}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                >
-                  {editingTask ? 'Save Changes' : 'Create Task'}
-                  <ArrowUpRight size={18} />
+                <motion.button type="submit" className={styles.submitButton} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+                  {editingTask ? 'Save Changes' : 'Create Task'}<ArrowUpRight size={18} />
                 </motion.button>
               </form>
             </motion.div>
