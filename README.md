@@ -1,19 +1,101 @@
-# TaskFlow
+# TaskFlow API
 
-Premium task management app with Supabase backend and beautiful React frontend.
+**Live Demo:** [https://frontend-p9u3sm04p-suraj-h675s-projects.vercel.app](https://frontend-p9u3sm04p-suraj-h675s-projects.vercel.app)
+
+Scalable REST API with JWT Authentication & Role-Based Access Control, featuring a beautiful React frontend.
+
+---
+
+## Backend Architecture (Primary Focus)
+
+This project demonstrates a **production-ready Node.js/Express backend** with modern architectural patterns:
+
+### Tech Stack
+- **Runtime:** Node.js with TypeScript
+- **Framework:** Express.js with modular routing
+- **Database:** PostgreSQL (via Supabase)
+- **Authentication:** JWT with bcrypt password hashing
+- **API Design:** RESTful with versioned endpoints (`/api/v1/`)
+
+### API Endpoints
+
+#### Authentication (`/api/v1/auth`)
+```
+POST /api/v1/auth/register   - User registration
+POST /api/v1/auth/login      - User login (returns JWT)
+GET  /api/v1/auth/profile    - Get current user
+PUT  /api/v1/auth/profile    - Update user profile
+```
+
+#### Tasks (`/api/v1/tasks`) - Protected routes (JWT required
+```
+POST   /api/v1/tasks         - Create task
+GET    /api/v1/tasks         - Get all tasks
+GET    /api/v1/tasks/:id     - Get single task
+PUT    /api/v1/tasks/:id     - Update task
+DELETE /api/v1/tasks/:id     - Delete task
+```
+
+### Security Features
+- **JWT Authentication** - Stateless token-based auth
+- **Password Hashing** - bcrypt with 12 rounds
+- **Input Validation** - express-validator middleware
+- **Role-Based Access Control** - User vs Admin roles
+- **CORS Protection** - Configured for frontend origins
+- **Helmet.js** - Security headers
+- **Row Level Security** - Database-level access control
+
+### Backend Project Structure
+```
+backend/
+├── src/
+│   ├── config/           # Database & JWT config
+│   ├── controllers/      # Auth & Task handlers
+│   ├── middleware/       # Auth, validation, errors
+│   ├── models/           # User & Task models
+│   ├── routes/           # API route definitions
+│   └── index.ts          # Express app entry
+├── migrations/            # Database schema
+└── package.json
+```
+
+### Database Schema
+
+**Users Table:**
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| email | VARCHAR(255) | Unique email |
+| password | VARCHAR(255) | Bcrypt hashed |
+| name | VARCHAR(255) | Display name |
+| role | VARCHAR(50) | 'user' or 'admin' |
+| createdAt | TIMESTAMP | Creation time |
+| updatedAt | TIMESTAMP | Last update |
+
+**Tasks Table:**
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| title | VARCHAR(200) | Task title |
+| description | TEXT | Optional details |
+| status | VARCHAR(50) | pending/in_progress/completed |
+| priority | VARCHAR(50) | low/medium/high |
+| userId | UUID | Foreign key to users |
+| createdAt | TIMESTAMP | Creation time |
+| updatedAt | TIMESTAMP | Last update |
+
+---
 
 ## Features
 
-- **Supabase Auth** - Secure authentication
-- **Role-Based Access** - User and Admin roles
+- **JWT Authentication** - Secure token-based auth
+- **Role-Based Access Control** - User and Admin roles
 - **Task CRUD** - Full task management
-- **Real-time** - Powered by Supabase
+- **API Versioning** - v1 API routes for future-proofing
+- **Input Validation** - Sanitized inputs with express-validator
+- **Error Handling** - Centralized error middleware
+- **Supabase** - Cloud PostgreSQL for data persistence
 - **Premium UI** - Dark glassmorphism design with animations
-
-## Tech Stack
-
-**Frontend:** React 18, Vite, Supabase SDK, Framer Motion, Lucide Icons
-**Backend:** Supabase (Auth + Database + Auto-generated API)
 
 ## Quick Start
 
@@ -24,24 +106,33 @@ git clone https://github.com/Suraj-H675/ProjectAssignment-.git
 cd ProjectAssignment-
 ```
 
-### 2. Frontend Setup
+### 2. Backend Setup
 
 ```bash
-cd frontend
+cd backend
 npm install
+cp .env.example .env
+```
+
+Edit `.env`:
+```
+SUPABASE_URL=your-project-url
+SUPABASE_ANON_KEY=your-anon-key
+JWT_SECRET=your-secret-key-min-32-chars
+```
+
+Start backend:
+```bash
 npm run dev
 ```
 
-### 3. Supabase Setup
+Backend runs on `http://localhost:3000`
+
+### 3. Supabase Database Setup
 
 1. Create project at [supabase.com](https://supabase.com)
-2. Go to **Settings** → **API** → Copy **Project URL** and **anon public** key
-3. Create `.env` file:
-```
-VITE_SUPABASE_URL=your-project-url
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
-4. Run this SQL in Supabase SQL Editor:
+2. Go to **Settings** → **API** → Copy credentials
+3. Run this SQL in Supabase SQL Editor:
 
 ```sql
 CREATE TABLE users (
@@ -67,13 +158,14 @@ CREATE TABLE tasks (
 
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+```
 
-CREATE POLICY "Users can view own tasks" ON tasks FOR SELECT USING (true);
-CREATE POLICY "Users can insert own tasks" ON tasks FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can update own tasks" ON tasks FOR UPDATE USING (true);
-CREATE POLICY "Users can delete own tasks" ON tasks FOR DELETE USING (true);
-CREATE POLICY "Users can view own profile" ON users FOR SELECT USING (true);
-CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (true);
+### 4. Frontend Setup
+
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 Frontend: `http://localhost:5173`
@@ -87,27 +179,42 @@ cd frontend
 vercel
 ```
 
-Set environment variables in Vercel:
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+### Backend (Railway/Render)
 
-## Architecture
+Deploy backend to Railway/Render with environment variables:
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `JWT_SECRET`
 
-```
-Frontend → Supabase (Auth + Database + API)
-           No backend server needed!
-```
+## Scalability Considerations
+
+This backend is designed for scale:
+
+1. **Stateless JWT** - Horizontal scaling ready
+2. **Connection Pooling** - Database connection management
+3. **Modular Architecture** - Easy to add new routes/controllers
+4. **Supabase** - Managed PostgreSQL with automatic backups
+5. **Future Options:**
+   - Add Redis caching
+   - Load balancer for multiple instances
+   - Microservices split (auth service vs task service)
 
 ## Project Structure
 
 ```
+├── backend/
+│   ├── src/
+│   │   ├── config/       # Supabase, JWT
+│   │   ├── controllers/  # Auth, Task
+│   │   ├── middleware/  # Auth, validation
+│   │   ├── models/      # User, Task
+│   │   └── routes/      # API routes
 ├── frontend/
 │   ├── src/
 │   │   ├── context/      # Auth context
 │   │   ├── lib/         # Supabase client
 │   │   ├── pages/       # Auth, Dashboard
 │   │   └── App.tsx
-│   └── package.json
 └── README.md
 ```
 
